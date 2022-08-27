@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e -u -x
+set -o pipefail
 
 readonly NEW_ROOT=/new_root
 readonly SHARED_DIR=/shared
