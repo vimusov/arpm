@@ -18,8 +18,8 @@ readonly FULL_CONT_NAME=arch-makepkg
 
 on_exit()
 {
-    $SUDO podman images | fgrep -q  $HALF_CONT_NAME && $SUDO podman rmi --force $HALF_CONT_NAME
-    $SUDO podman images | fgrep -q  $ARCH_CONT_NAME && $SUDO podman rmi --force $ARCH_CONT_NAME
+    $SUDO podman images | grep -qF  $HALF_CONT_NAME && $SUDO podman rmi --force $HALF_CONT_NAME
+    $SUDO podman images | grep -qF  $ARCH_CONT_NAME && $SUDO podman rmi --force $ARCH_CONT_NAME
     rm -rfv "$SHARED_DIR"
     [ -z "$TARBALL_DIR" ] || rm -rfv "$TARBALL_DIR"
     builtin exit 0
@@ -27,7 +27,7 @@ on_exit()
 
 cont_ready()
 {
-    $SUDO podman images | fgrep -q  $FULL_CONT_NAME
+    $SUDO podman images | grep -qF  $FULL_CONT_NAME
 }
 
 do_cleanup()
@@ -122,7 +122,7 @@ if [ -d "$SRC_DIR" ]; then
 else
     TARBALL_DIR=$(mktemp -d)
     if [[ "${SRC_DIR%%:*}" =~ ^(http|https|ftp)$ ]]; then
-        curl -s "$SRC_DIR" | bsdtar -x -v -C "$TARBALL_DIR" -f -
+        curl "$SRC_DIR" | bsdtar -x -v -C "$TARBALL_DIR" -f -
     else
         bsdtar -x -v -C "$TARBALL_DIR" -f $(readlink -e "$SRC_DIR")
     fi

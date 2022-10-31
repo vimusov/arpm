@@ -3,6 +3,7 @@
 set -e -u -x
 set -o pipefail
 
+readonly LANG=en_US.UTF-8
 readonly NEW_ROOT=/new_root
 readonly SHARED_DIR=/shared
 
@@ -38,7 +39,8 @@ update_configs $NEW_ROOT
 install -v -m 0755 --target-directory=$NEW_ROOT $SHARED_DIR/makepkg.sh
 
 rm -vf $NEW_ROOT/usr/lib/locale/locale-archive
-localedef -c --prefix=$NEW_ROOT -i en_US -f UTF-8 -A $NEW_ROOT/usr/share/locale/locale.alias en_US.UTF-8
+localedef -c --prefix=$NEW_ROOT -i "${LANG%%.*}" -f "${LANG##*.}" -A $NEW_ROOT/usr/share/locale/locale.alias "$LANG"
+echo "LANG=$LANG" > $NEW_ROOT/etc/locale.conf
 
 useradd --root $NEW_ROOT --user-group --no-log-init --create-home --shell /bin/bash pkgbuild
 echo 'pkgbuild ALL=(ALL) NOPASSWD: ALL' >| $NEW_ROOT/etc/sudoers.d/pkgbuild
