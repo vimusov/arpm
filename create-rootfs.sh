@@ -6,20 +6,34 @@ set -o pipefail
 readonly NEW_ROOT=/new_root
 readonly SHARED_DIR=/shared
 
+update_configs()
+{
+    local name=''
+    local names=(
+        makepkg.conf
+        pacman.conf
+        pacman.d/mirrorlist
+    )
+    local root_dir="$1"
+
+    for name in "${names[@]}"; do
+        rm -vf "$root_dir"/etc/"$name"
+        install -v -m 0644 $SHARED_DIR/"${name##*/}" "$root_dir"/etc/"$name"
+    done
+}
+
 mkdir -vp -m 0755 $NEW_ROOT/var/{cache/pacman/pkg,lib/pacman,log}
 mkdir -vp -m 0755 $NEW_ROOT/{dev,run,etc/pacman.d}
 mkdir -vp -m 1777 $NEW_ROOT/tmp
 mkdir -vp -m 0555 $NEW_ROOT/{sys,proc}
 
-rm -vf /etc/pacman.conf
-install -v -m 0644 $SHARED_DIR/pacman.conf /etc/pacman.conf
+update_configs ''
 
 ln -svf /proc/mounts /etc/mtab
 pacman -Sy  --noconfirm -r $NEW_ROOT base-devel
 pacman -Scc --noconfirm -r $NEW_ROOT
 
-rm -vf $NEW_ROOT/etc/{makepkg,pacman}.conf
-install -v -m 0644 --target-directory=$NEW_ROOT/etc $SHARED_DIR/{makepkg,pacman}.conf
+update_configs $NEW_ROOT
 
 install -v -m 0755 --target-directory=$NEW_ROOT $SHARED_DIR/makepkg.sh
 

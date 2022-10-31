@@ -39,7 +39,8 @@ do_cleanup()
 do_update()
 {
     install -D -m 0644 --target-directory="$SHARED_DIR" \
-        "$THIS_DIR"/makepkg.sh /etc/{makepkg,pacman}.conf
+        "$THIS_DIR"/makepkg.sh /etc/{makepkg,pacman}.conf \
+        /etc/pacman.d/mirrorlist
 
     pushd "$THIS_DIR" > /dev/null
     $SUDO podman build \
