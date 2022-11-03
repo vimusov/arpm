@@ -9,6 +9,7 @@ THIS_FN=$(readlink -e "$0")
 LOCAL_REPO=''
 RESULT_DIR=''
 TARBALL_DIR=''
+MIRRORS_CONF='/etc/pacman.d/mirrorlist'
 
 readonly THIS_DIR="${THIS_FN%\/*}"
 readonly SHARED_DIR="$THIS_DIR"/shared
@@ -40,7 +41,7 @@ do_update()
 {
     install -D -m 0644 --target-directory="$SHARED_DIR" \
         "$THIS_DIR"/makepkg.sh /etc/{makepkg,pacman}.conf \
-        /etc/pacman.d/mirrorlist
+        "$MIRRORS_CONF"
 
     pushd "$THIS_DIR" > /dev/null
     $SUDO podman build \
@@ -51,8 +52,6 @@ do_update()
     popd > /dev/null
 
     $SUDO podman import \
-        --change CMD='' \
-        --change ENTRYPOINT=/makepkg.sh \
         "$SHARED_DIR"/new-rootfs.tar \
         $FULL_CONT_NAME
 }
@@ -61,11 +60,13 @@ usage()
 {
     local cur_dir=$(readlink -e "$PWD")
     cat >&2 << EOF
-Usage: ${0##*\/} [-h] [-r] [-u] [-l <DIR>] [-o <DIR>] [SRC]
+Usage: ${0##*\/} [-h] [-i] [-r] [-u] [-m <FILE>] [-l <DIR>] [-o <DIR>] [SRC]
 
 Options:
+    -i: Run pacman interactively;
     -r: Remove container and quit;
     -u: Update container and quit;
+    -m <FILE>: Use mirrorlist from the specified file;
     -l <DIR>: Use the directory as a local repository;
     -o <DIR>: The directory for the built packages ('$cur_dir/out' by default);
 
@@ -88,10 +89,15 @@ EOF
 
 trap on_exit ERR EXIT
 
-while getopts "hrul:o:" opt; do
+CONT_ARGS=()
+
+while getopts "hirum:l:o:" opt; do
     case $opt in
         h)
             usage
+            ;;
+        i)
+            CONT_ARGS+=(-i)
             ;;
         r)
             do_cleanup
@@ -101,6 +107,9 @@ while getopts "hrul:o:" opt; do
             do_cleanup
             do_update
             exit $?
+            ;;
+        m)
+            MIRRORS_CONF=$(readlink -e "$OPTARG")
             ;;
         l)
             LOCAL_REPO=$(readlink -e "$OPTARG")
@@ -143,4 +152,4 @@ $SUDO podman run -it --rm \
     --volume "$SRC_DIR":/sources:ro \
     --volume "$RESULT_DIR":/result \
     ${LOCAL_REPO:+--volume "$LOCAL_REPO":/local_repo:ro} \
-    $FULL_CONT_NAME
+    $FULL_CONT_NAME /makepkg.sh "${CONT_ARGS[@]}"

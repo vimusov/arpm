@@ -2,6 +2,17 @@
 
 set -e -u -x
 
+opt=''
+CONFIRM='--noconfirm'
+
+while getopts "i" opt; do
+    case $opt in
+        i)
+            CONFIRM=''
+            ;;
+    esac
+done
+
 readonly PKG_EXT='*.pkg.tar.zst'
 readonly WORK_DIR=/tmp/workdir
 readonly RESULT_DIR=/result
@@ -16,13 +27,13 @@ readonly DST_REPO_DIR=/tmp/local_repo
     popd > /dev/null
     echo -e "\n[pkgbuild]\nServer = file://$DST_REPO_DIR\n" >> /etc/pacman.conf
 } || true
-pacman -Syu --noconfirm
+pacman -Syu $CONFIRM
 
 mkdir $WORK_DIR
 find $SRC_DIR_PATH -mindepth 1 -not \( -path '*/.*' -or -iname $PKG_EXT \) -exec cp -rv '{}' $WORK_DIR \;
 chown -Rv pkgbuild:pkgbuild $WORK_DIR
 pushd $WORK_DIR > /dev/null
-sudo -u pkgbuild -- makepkg --skippgpcheck --noconfirm --syncdeps
+sudo -u pkgbuild -- makepkg --skippgpcheck --syncdeps
 popd > /dev/null
 
 chmod 0777 $RESULT_DIR
