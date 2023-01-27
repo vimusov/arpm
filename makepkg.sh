@@ -5,10 +5,20 @@ set -e -u -x
 opt=''
 CONFIRM='--noconfirm'
 
-while getopts "i" opt; do
+on_error()
+{
+    echo "Unexpected error occurred. Dropping to an emergency shell.\n"
+    /bin/bash
+    builtin exit 1
+}
+
+while getopts "ie" opt; do
     case $opt in
         i)
             CONFIRM=''
+            ;;
+        e)
+            trap on_error ERR
             ;;
     esac
 done

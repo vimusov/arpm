@@ -60,9 +60,10 @@ usage()
 {
     local cur_dir=$(readlink -e "$PWD")
     cat >&2 << EOF
-Usage: ${0##*\/} [-h] [-i] [-r] [-u] [-m <FILE>] [-l <DIR>] [-o <DIR>] [SRC]
+Usage: ${0##*\/} [-h] [-e] [-i] [-r] [-u] [-m <FILE>] [-l <DIR>] [-o <DIR>] [SRC]
 
 Options:
+    -e: Run shell if build failed;
     -i: Run pacman interactively;
     -r: Remove container and quit;
     -u: Update container and quit;
@@ -91,10 +92,13 @@ trap on_exit ERR EXIT
 
 CONT_ARGS=()
 
-while getopts "hirum:l:o:" opt; do
+while getopts "heirum:l:o:" opt; do
     case $opt in
         h)
             usage
+            ;;
+        e)
+            CONT_ARGS+=(-e)
             ;;
         i)
             CONT_ARGS+=(-i)
