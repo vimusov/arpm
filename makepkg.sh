@@ -33,7 +33,7 @@ mkdir $WORK_DIR
 find $SRC_DIR_PATH -mindepth 1 -not \( -path '*/.*' -or -iname $PKG_EXT \) -exec cp -rv '{}' $WORK_DIR \;
 chown -Rv pkgbuild:pkgbuild $WORK_DIR
 pushd $WORK_DIR > /dev/null
-sudo -u pkgbuild -- makepkg --skippgpcheck --syncdeps
+sudo -u pkgbuild -- makepkg --skippgpcheck --syncdeps $CONFIRM
 popd > /dev/null
 
 chmod 0777 $RESULT_DIR
