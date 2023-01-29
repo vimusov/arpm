@@ -40,7 +40,19 @@ readonly DST_REPO_DIR=/tmp/local_repo
 pacman -Syu $CONFIRM
 
 mkdir $WORK_DIR
-find $SRC_DIR_PATH -mindepth 1 -not \( -path '*/.*' -or -iname $PKG_EXT \) -exec cp -rv '{}' $WORK_DIR \;
+for path in $SRC_DIR_PATH/* ; do
+    if [ -d "$path" ]; then
+        pkg_found=0
+        for pkg in "$path"/"$PKG_EXT"; do
+            [ -s "$pkg" ] && pkg_found=1 || continue
+        done
+        [ $pkg_found -eq 1 ] || cp -rv "$path" $WORK_DIR
+    elif [ -f "$path" ]; then
+        cp -v "$path" $WORK_DIR
+    else
+        echo "Skipping unknown file '$path'."
+    fi
+done
 chown -Rv pkgbuild:pkgbuild $WORK_DIR
 pushd $WORK_DIR > /dev/null
 sudo -u pkgbuild -- makepkg --skippgpcheck --syncdeps $CONFIRM
