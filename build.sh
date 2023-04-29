@@ -11,6 +11,8 @@ RESULT_DIR=''
 TARBALL_DIR=''
 MIRRORS_CONF='/etc/pacman.d/mirrorlist'
 
+readonly ORG_UID=$(id -u)
+readonly ORG_GID=$(id -g)
 readonly THIS_DIR="${THIS_FN%\/*}"
 readonly SHARED_DIR="$THIS_DIR"/shared
 readonly ARCH_CONT_NAME=docker.io/archlinux/archlinux
@@ -157,3 +159,5 @@ $SUDO podman run -it --rm \
     --volume "$RESULT_DIR":/result \
     ${LOCAL_REPO:+--volume "$LOCAL_REPO":/local_repo:ro} \
     $FULL_CONT_NAME /makepkg.sh "${CONT_ARGS[@]}"
+
+$SUDO chown -R "$ORG_UID":"$ORG_GID" "$RESULT_DIR"

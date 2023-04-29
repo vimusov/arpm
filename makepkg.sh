@@ -58,5 +58,4 @@ pushd $WORK_DIR > /dev/null
 sudo -u pkgbuild -- makepkg --skippgpcheck --syncdeps $CONFIRM
 popd > /dev/null
 
-chmod 0777 $RESULT_DIR
 install -v -m 0644 --target-directory=$RESULT_DIR $WORK_DIR/$PKG_EXT
