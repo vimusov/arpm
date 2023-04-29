@@ -5,7 +5,7 @@ set -o pipefail
 
 readonly SUDO=${WITH_SUDO:-sudo}
 
-THIS_FN=$(readlink -e "$0")
+readonly THIS_FN=$(readlink -e "$0")
 LOCAL_REPO=''
 RESULT_DIR=''
 TARBALL_DIR=''
@@ -15,14 +15,12 @@ readonly ORG_UID=$(id -u)
 readonly ORG_GID=$(id -g)
 readonly THIS_DIR="${THIS_FN%\/*}"
 readonly SHARED_DIR="$THIS_DIR"/shared
-readonly ARCH_CONT_NAME=docker.io/archlinux/archlinux
 readonly HALF_CONT_NAME=half-backed-image
 readonly FULL_CONT_NAME=arch-makepkg
 
 on_exit()
 {
     $SUDO podman images | grep -qF  $HALF_CONT_NAME && $SUDO podman rmi --force $HALF_CONT_NAME
-    $SUDO podman images | grep -qF  $ARCH_CONT_NAME && $SUDO podman rmi --force $ARCH_CONT_NAME
     rm -rfv "$SHARED_DIR"
     [ -z "$TARBALL_DIR" ] || rm -rfv "$TARBALL_DIR"
     builtin exit 0
@@ -48,7 +46,6 @@ do_update()
     pushd "$THIS_DIR" > /dev/null
     $SUDO podman build \
         --rm --force-rm --no-cache \
-        --from $ARCH_CONT_NAME \
         --tag $HALF_CONT_NAME \
         --volume "$SHARED_DIR":/shared .
     popd > /dev/null
