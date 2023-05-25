@@ -3,7 +3,7 @@
 set -e -u
 set -o pipefail
 
-readonly SUDO=${WITH_SUDO:-sudo}
+readonly DOAS=${WITH_DOAS:-doas}
 
 readonly THIS_FN=$(readlink -e "$0")
 LOCAL_REPO=''
@@ -20,7 +20,7 @@ readonly FULL_CONT_NAME=arch-makepkg
 
 on_exit()
 {
-    $SUDO podman images | grep -qF  $HALF_CONT_NAME && $SUDO podman rmi --force $HALF_CONT_NAME
+    $DOAS podman images | grep -qF  $HALF_CONT_NAME && $DOAS podman rmi --force $HALF_CONT_NAME
     rm -rfv "$SHARED_DIR"
     [ -z "$TARBALL_DIR" ] || rm -rfv "$TARBALL_DIR"
     builtin exit 0
@@ -28,13 +28,13 @@ on_exit()
 
 cont_ready()
 {
-    $SUDO podman images | grep -qF  $FULL_CONT_NAME
+    $DOAS podman images | grep -qF  $FULL_CONT_NAME
 }
 
 do_cleanup()
 {
     cont_ready || return 0
-    $SUDO podman rmi --force $FULL_CONT_NAME
+    $DOAS podman rmi --force $FULL_CONT_NAME
 }
 
 do_update()
@@ -44,13 +44,13 @@ do_update()
         "$MIRRORS_CONF"
 
     pushd "$THIS_DIR" > /dev/null
-    $SUDO podman build \
+    $DOAS podman build \
         --rm --force-rm --no-cache \
         --tag $HALF_CONT_NAME \
         --volume "$SHARED_DIR":/shared .
     popd > /dev/null
 
-    $SUDO podman import \
+    $DOAS podman import \
         "$SHARED_DIR"/new-rootfs.tar \
         $FULL_CONT_NAME
 }
@@ -151,10 +151,10 @@ mkdir -p "$RESULT_DIR"
 
 cont_ready || do_update
 
-$SUDO podman run -it --rm \
+$DOAS podman run -it --rm \
     --volume "$SRC_DIR":/sources:ro \
     --volume "$RESULT_DIR":/result \
     ${LOCAL_REPO:+--volume "$LOCAL_REPO":/local_repo:ro} \
     $FULL_CONT_NAME /makepkg.sh "${CONT_ARGS[@]}"
 
-$SUDO chown -R "$ORG_UID":"$ORG_GID" "$RESULT_DIR"
+$DOAS chown -R "$ORG_UID":"$ORG_GID" "$RESULT_DIR"
