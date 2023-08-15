@@ -1,59 +1,59 @@
-# Что?
+# What?
 
-Набор скриптов для сборки пакетов ArchLinux, а также сервер и CLI для деплоя этих пакетов.
+A bunch of scripts to build packages for Arch Linux. Plus a server and CLI tool for sharing and deploying packages.
 
-# Зачем?
+# Why?
 
-Когда есть более одного устройства с ArchLinux, возникает разумное желание создать для них
-общий репозиторий пакетов, с которого они все смогут обновляться. Для достижения этих целей
-и облегчения задач создан данный софт.
+When you are running more than one server under Arch Linux you may need a shared repository with some custom packages.
+And this is it!
 
-# Фичи
+# Features
 
-- Сборка пакетов в "чистой среде" контейнера;
-- Сборка из каталога или тарбола или URL-а на тарбол;
-- Удалённый сервер при манипуляциях пакетами перестраивает базу пакетов автоматически;
-- Удобное CLI для управления ветками и пакетами, позволяющее:
-    - Просматривать текущие ветки сервера;
-    - Создавать новые ветки;
-    - Просматривать пакеты в ветке;
-    - Скачивать выбранный пакет;
-    - Загружать пакеты, при этом старые версии одноимённых пакетов удаляются;
-    - Удалять пакеты (но удаление веток не предусмотрено);
-    - Обновлять сам сервер (применяется в целях его разработки и отладки);
+- Repeatable build in a clean container environment;
+- Build from a directory, from a tarball, fetching an URL (from AUR for instance);
+- The remote server keeps the packages database steady and solid;
+- A CLI tool which allows to run these actions on a remote server:
+  - List all branches;
+  - Create new branch;
+  - List packages in a branch;
+  - Download a package;
+  - Upload packages with replacing the old ones;
+  - Remove packages (branch removal is not implemented for the safety reasons);
+  - Update the server (for debug and development purposes);
 
-**ВАЖНО! Сервер не имеет никаких средств авторизации и/или аутентификации!**
+**WARNING!** The server does not support any authorization!
 
-# Зависимости
+# Requirements
 
-Для сборки пакетов:
+For build packages:
 
-- `/etc/makepkg.conf` (копируется в контейнер);
-- `/etc/pacman.conf` (копируется в контейнер);
+- `/etc/makepkg.conf` (copies into container);
+- `/etc/pacman.conf` (copies into container);
 - `podman`
-- `sudo`
+- `doas`
+- `aria2c` or `wget` or `curl`
 
-Для сервера и клиента деплоя:
+For the deploy server and CLI tool:
 
 - `python-aiohttp`
 - `python-pyzstd`
 - `python-requests`
 - `python-systemd`
 
-# Настройка сервера
+# Server setup
 
-1. Создать непривилегированного пользователя, например `arpm`.
+1. Create an unprivileged user, `arpm` for instance.
 
-1. Создать конфиг `~/.config/arpm.conf`:
+1. Create a config `~/.config/arpm.conf`:
    ```
     [server]
     host=0.0.0.0
     port=32475
    ```
 
-   Где `host` и `port` - адрес и порт для прослушивания;
+   Where `host` and `port` - address and port to listen on;
 
-1. Создать юнит для запуска сервера:
+1. Create a systemd unit:
 
    ```
    [Unit]
@@ -70,17 +70,15 @@
    WantedBy=multi-user.target
    ```
 
-   Где `/srv/archlinux/x86_64` - корневой каталог.
+   Where `/srv/archlinux/x86_64` - is the packages root directory.
 
-1. Настроить любой HTTP/HTTPS-сервер для раздачи пакетов из корневого каталога.
+1. Run the server:
 
-1. Запустить и включить юнит:
+   `systemctl enable --now arpm`
 
-   `systemctl start arpm && systemctl enable arpm`
+# CLI tool usage
 
-# Применение CLI
-
-1. Создать конфиг `~/.config/arpm.conf`:
+1. Create a config `~/.config/arpm.conf`:
 
    ```
    [server]
@@ -88,27 +86,27 @@
    port=32475
    ```
 
-   Где `example.com` - адрес сервера.
+   Where `example.com` is the address of the server.
 
-1. Собрать пакет, например из тарбола по URL:
+1. Build a package:
 
    `./build.sh 'https://aur.archlinux.org/cgit/aur.git/snapshot/google-chrome.tar.gz'`
 
-1. Создать на сервере новую ветку, например `custom`:
+1. Create a new branch on server, `custom` for instance:
 
    `./arpm.py branch mk custom`
 
-1. Отправить пакет на сервер:
+1. Upload package to the server:
 
    `./arpm.py pkg custom put out/*.pkg.tar.zstd`
 
-1. Добавить в `/etc/pacman.conf` URL с новым репозиторием на все устройства, например:
+1. Append the URL with a new branch to the `/etc/pacman.conf`:
 
    ```
    [custom]
    Server = http://example.com/archlinux/$arch/$repo
    ```
 
-# Лицензия
+# License
 
 GPL.

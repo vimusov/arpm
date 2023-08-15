@@ -1,7 +1,6 @@
 #!/bin/bash
 
-set -e -u
-set -o pipefail
+set -ueo pipefail
 
 readonly DOAS=${WITH_DOAS:-doas}
 
@@ -17,14 +16,26 @@ readonly THIS_DIR="${THIS_FN%\/*}"
 readonly SHARED_DIR="$THIS_DIR"/shared
 readonly HALF_CONT_NAME=half-backed-image
 readonly FULL_CONT_NAME=arch-makepkg
+readonly SRC_ARCH=archlinux-bootstrap-x86_64.tar.gz
+readonly ROOT_DIR="$THIS_DIR"/tmp-root
+readonly DST_IMG=bs.tar
+readonly IMG_URL="https://mirror.yandex.ru/archlinux/iso/latest/$SRC_ARCH"
 
 on_exit()
 {
+    if [ -d "$ROOT_DIR" ]; then
+        mountpoint -q "$ROOT_DIR" && $DOAS umount "$ROOT_DIR" || true
+        rmdir "$ROOT_DIR"
+    else
+        true
+    fi
     $DOAS podman images | grep -qF  $HALF_CONT_NAME && $DOAS podman rmi --force $HALF_CONT_NAME
     rm -rfv "$SHARED_DIR"
     [ -z "$TARBALL_DIR" ] || rm -rfv "$TARBALL_DIR"
     builtin exit 0
 }
+
+trap on_exit ERR EXIT
 
 cont_ready()
 {
@@ -37,14 +48,39 @@ do_cleanup()
     $DOAS podman rmi --force $FULL_CONT_NAME
 }
 
+do_bootstrap()
+{
+    [ -s "$DST_IMG" ] && return 0
+
+    local loader=''
+    for loader in aria2c wget curl; do
+        type $loader > /dev/null 2>&1 && break
+    done
+    if [ -z "$loader" ]; then
+        echo "ERROR: Loader is not found, aria2c or wget or curl needed." >&2
+        exit 1
+    fi
+
+    $loader "$IMG_URL"
+
+    mkdir "$ROOT_DIR"
+    $DOAS mount -t tmpfs -o size=2G none "$ROOT_DIR"
+    $DOAS tar zxf "$SRC_ARCH" -C "$ROOT_DIR" --strip-components=1
+    $DOAS tar cf "$THIS_DIR"/"$DST_IMG" -C "$ROOT_DIR" .
+    $DOAS chown "$ORG_UID":"$ORG_GID" "$DST_IMG"
+}
+
 do_update()
 {
     install -D -m 0644 --target-directory="$SHARED_DIR" \
         "$THIS_DIR"/makepkg.sh /etc/{makepkg,pacman}.conf \
         "$MIRRORS_CONF"
 
+    do_bootstrap
+
     pushd "$THIS_DIR" > /dev/null
     $DOAS podman build \
+        --network=host \
         --rm --force-rm --no-cache \
         --tag $HALF_CONT_NAME \
         --volume "$SHARED_DIR":/shared .
@@ -86,8 +122,6 @@ Arguments:
 EOF
     exit 1
 }
-
-trap on_exit ERR EXIT
 
 CONT_ARGS=()
 
@@ -152,6 +186,7 @@ mkdir -p "$RESULT_DIR"
 cont_ready || do_update
 
 $DOAS podman run -it --rm \
+    --network=host \
     --volume "$SRC_DIR":/sources:ro \
     --volume "$RESULT_DIR":/result \
     ${LOCAL_REPO:+--volume "$LOCAL_REPO":/local_repo:ro} \
