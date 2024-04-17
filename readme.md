@@ -30,7 +30,7 @@ For build packages:
 - `/etc/makepkg.conf` (copies into container);
 - `/etc/pacman.conf` (copies into container);
 - `podman`
-- `doas`
+- `sudo`
 - `aria2c` or `wget` or `curl`
 
 For the deploy server and CLI tool:

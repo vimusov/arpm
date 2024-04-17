@@ -2,7 +2,7 @@
 
 set -ueo pipefail
 
-readonly DOAS=${WITH_DOAS:-doas}
+readonly SUDO=${WITH_SUDO:-sudo}
 
 readonly THIS_FN=$(readlink -e "$0")
 LOCAL_REPO=''
@@ -24,12 +24,12 @@ readonly IMG_URL="https://mirror.yandex.ru/archlinux/iso/latest/$SRC_ARCH"
 on_exit()
 {
     if [ -d "$ROOT_DIR" ]; then
-        mountpoint -q "$ROOT_DIR" && $DOAS umount "$ROOT_DIR" || true
+        mountpoint -q "$ROOT_DIR" && $SUDO umount "$ROOT_DIR" || true
         rmdir "$ROOT_DIR"
     else
         true
     fi
-    $DOAS podman images | grep -qF  $HALF_CONT_NAME && $DOAS podman rmi --force $HALF_CONT_NAME
+    $SUDO podman images | grep -qF  $HALF_CONT_NAME && $SUDO podman rmi --force $HALF_CONT_NAME
     rm -rfv "$SHARED_DIR"
     [ -z "$TARBALL_DIR" ] || rm -rfv "$TARBALL_DIR"
     builtin exit 0
@@ -39,13 +39,13 @@ trap on_exit ERR EXIT
 
 cont_ready()
 {
-    $DOAS podman images | grep -qF  $FULL_CONT_NAME
+    $SUDO podman images | grep -qF  $FULL_CONT_NAME
 }
 
 do_cleanup()
 {
     cont_ready || return 0
-    $DOAS podman rmi --force $FULL_CONT_NAME
+    $SUDO podman rmi --force $FULL_CONT_NAME
 }
 
 do_bootstrap()
@@ -64,10 +64,10 @@ do_bootstrap()
     $loader "$IMG_URL"
 
     mkdir "$ROOT_DIR"
-    $DOAS mount -t tmpfs -o size=2G none "$ROOT_DIR"
-    $DOAS tar zxf "$SRC_ARCH" -C "$ROOT_DIR" --strip-components=1
-    $DOAS tar cf "$THIS_DIR"/"$DST_IMG" -C "$ROOT_DIR" .
-    $DOAS chown "$ORG_UID":"$ORG_GID" "$DST_IMG"
+    $SUDO mount -t tmpfs -o size=2G none "$ROOT_DIR"
+    $SUDO tar zxf "$SRC_ARCH" -C "$ROOT_DIR" --strip-components=1
+    $SUDO tar cf "$THIS_DIR"/"$DST_IMG" -C "$ROOT_DIR" .
+    $SUDO chown "$ORG_UID":"$ORG_GID" "$DST_IMG"
 }
 
 do_update()
@@ -79,14 +79,14 @@ do_update()
     do_bootstrap
 
     pushd "$THIS_DIR" > /dev/null
-    $DOAS podman build \
+    $SUDO podman build \
         --network=host \
         --rm --force-rm --no-cache \
         --tag $HALF_CONT_NAME \
         --volume "$SHARED_DIR":/shared .
     popd > /dev/null
 
-    $DOAS podman import \
+    $SUDO podman import \
         "$SHARED_DIR"/new-rootfs.tar \
         $FULL_CONT_NAME
 }
@@ -185,11 +185,11 @@ mkdir -p "$RESULT_DIR"
 
 cont_ready || do_update
 
-$DOAS podman run -it --rm \
+$SUDO podman run -it --rm \
     --network=host \
     --volume "$SRC_DIR":/sources:ro \
     --volume "$RESULT_DIR":/result \
     ${LOCAL_REPO:+--volume "$LOCAL_REPO":/local_repo:ro} \
     $FULL_CONT_NAME /makepkg.sh "${CONT_ARGS[@]}"
 
-$DOAS chown -R "$ORG_UID":"$ORG_GID" "$RESULT_DIR"
+$SUDO chown -R "$ORG_UID":"$ORG_GID" "$RESULT_DIR"
