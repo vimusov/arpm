@@ -16,7 +16,7 @@ readonly THIS_DIR="${THIS_FN%\/*}"
 readonly SHARED_DIR="$THIS_DIR"/shared
 readonly HALF_CONT_NAME=half-backed-image
 readonly FULL_CONT_NAME=arch-makepkg
-readonly SRC_ARCH=archlinux-bootstrap-x86_64.tar.gz
+readonly SRC_ARCH=archlinux-bootstrap-x86_64.tar.zst
 readonly ROOT_DIR="$THIS_DIR"/tmp-root
 readonly DST_IMG=bs.tar
 readonly IMG_URL="https://mirror.yandex.ru/archlinux/iso/latest/$SRC_ARCH"
@@ -52,20 +52,21 @@ do_bootstrap()
 {
     [ -s "$DST_IMG" ] && return 0
 
-    local loader=''
-    for loader in aria2c wget curl; do
-        type $loader > /dev/null 2>&1 && break
-    done
-    if [ -z "$loader" ]; then
-        echo "ERROR: Loader is not found, aria2c or wget or curl needed." >&2
-        exit 1
-    fi
-
-    $loader "$IMG_URL"
+	if ! [ -s "$SRC_ARCH" ]; then
+    	local loader=''
+    	for loader in aria2c wget curl; do
+        	type $loader > /dev/null 2>&1 && break
+    	done
+    	if [ -z "$loader" ]; then
+	        echo "ERROR: Loader is not found, aria2c or wget or curl needed." >&2
+        	exit 1
+    	fi
+	    $loader "$IMG_URL"
+	fi
 
     mkdir "$ROOT_DIR"
     $SUDO mount -t tmpfs -o size=2G none "$ROOT_DIR"
-    $SUDO tar zxf "$SRC_ARCH" -C "$ROOT_DIR" --strip-components=1
+    $SUDO bsdtar xf "$SRC_ARCH" -C "$ROOT_DIR" --strip-components=1
     $SUDO tar cf "$THIS_DIR"/"$DST_IMG" -C "$ROOT_DIR" .
     $SUDO chown "$ORG_UID":"$ORG_GID" "$DST_IMG"
 }
