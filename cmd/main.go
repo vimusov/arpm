@@ -47,6 +47,11 @@ func main() {
 		"debug", "d", false,
 		"Enable debug mode.",
 	)
+	serverCmd.Flags().StringVarP(
+		&listenOn,
+		"listen", "l", listenOn,
+		"Address to listen on.",
+	)
 
 	var branchesCmd = &cobra.Command{
 		Use:   "branches",

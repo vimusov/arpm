@@ -26,6 +26,8 @@ import (
 	"syscall"
 )
 
+var listenOn = ":31847"
+
 const notifySocket = "NOTIFY_SOCKET"
 
 func notifyReady() {
@@ -69,7 +71,8 @@ func runServer(rootDir string) error {
 	go func() {
 		defer wg.Done()
 		notifyReady()
-		if srvErr := engine.Start("127.0.0.1:31847"); srvErr != nil && srvErr != http.ErrServerClosed {
+		logInfo("Listening on '%s'", listenOn)
+		if srvErr := engine.Start(listenOn); srvErr != nil && srvErr != http.ErrServerClosed {
 			engine.Logger.Fatal("failed to shutdown server")
 		}
 	}()
