@@ -3,7 +3,7 @@ target := "arpm"
 default: build
 
 build:
-    cd cmd && go build -o ../{{target}}
+    cd cmd && go build -ldflags='-s -w' -o ../{{target}}
 
 clean:
     rm -f {{target}}
